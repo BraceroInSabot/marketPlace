@@ -15,29 +15,46 @@ import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { Product } from "../../types";
 import { Ionicons } from "@expo/vector-icons";
+
 type Props = {
   addToCart: (product: Product) => void;
 };
+
 type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, "Home">;
+
 const HomeScreen: React.FC<Props> = ({ addToCart }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [newProductName, setNewProductName] = useState("");
   const [newProductPrice, setNewProductPrice] = useState("");
+  const [newProductDescription, setNewProductDescription] = useState("");
+  const [newProductImageUrl, setNewProductImageUrl] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
   const navigation = useNavigation<HomeScreenNavigationProp>();
+
   const fetchProducts = async () => {
     try {
-      const response = await axios.get("https://YOUR_MOCKAPI_URL/products");
+      const response = await axios.get(
+        "https://6858dff9138a18086dfc1f56.mockapi.io/api/v1/products"
+      );
       setProducts(response.data);
     } catch (error) {
       console.error("Erro ao buscar produtos:", error);
     }
   };
+
   useEffect(() => {
     fetchProducts();
   }, []);
+
   const handleAddProduct = async () => {
-    if (!newProductName || !newProductPrice) {
+    if (
+      !newProductName ||
+      !newProductPrice ||
+      !newProductDescription ||
+      !newProductImageUrl
+    ) {
       Alert.alert("Preencha todos os campos!");
       return;
     }
@@ -45,19 +62,32 @@ const HomeScreen: React.FC<Props> = ({ addToCart }) => {
       const newProduct = {
         name: newProductName,
         price: newProductPrice,
+        description: newProductDescription,
+        imageUrl: newProductImageUrl,
       };
-      await axios.post("https://YOUR_MOCKAPI_URL/products", newProduct);
+      await axios.post(
+        "https://6858dff9138a18086dfc1f56.mockapi.io/api/v1/products",
+        newProduct
+      );
       setNewProductName("");
       setNewProductPrice("");
+      setNewProductDescription("");
+      setNewProductImageUrl("");
       setShowForm(false);
       fetchProducts();
     } catch (error) {
       console.error("Erro ao cadastrar produto:", error);
     }
   };
+
   const toggleForm = () => {
     setShowForm(!showForm);
   };
+
+  const filteredProducts = products.filter((item) =>
+    item.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <View style={styles.container}>
       {showForm && (
@@ -76,36 +106,68 @@ const HomeScreen: React.FC<Props> = ({ addToCart }) => {
             keyboardType="numeric"
             style={styles.input}
           />
+          <TextInput
+            placeholder="Descrição"
+            value={newProductDescription}
+            onChangeText={setNewProductDescription}
+            style={styles.input}
+          />
+          <TextInput
+            placeholder="URL da imagem"
+            value={newProductImageUrl}
+            onChangeText={setNewProductImageUrl}
+            style={styles.input}
+          />
           <Button title="Cadastrar Produto" onPress={handleAddProduct} />
         </View>
       )}
+
       <Text style={[styles.title, { marginTop: 20 }]}>Produtos</Text>
+
+      <TextInput
+        placeholder="Buscar produto"
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        style={styles.input}
+      />
+
       <FlatList
-        data={products}
+        data={filteredProducts}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View style={styles.item}>
-            <Text>{item.name}</Text>
-            <Text>R$ {item.price}</Text>
+          <TouchableOpacity
+            style={styles.item}
+            onPress={() =>
+              navigation.navigate("ProductDetails", { product: item })
+            }
+          >
+            <View>
+              <Text>{item.name}</Text>
+              <Text>R$ {item.price}</Text>
+            </View>
             <TouchableOpacity onPress={() => addToCart(item)}>
               <Ionicons name="cart" size={24} color="green" />
             </TouchableOpacity>
-          </View>
+          </TouchableOpacity>
         )}
       />
+
       <TouchableOpacity
         style={styles.cartIcon}
         onPress={() => navigation.navigate("Carrinho")}
       >
         <Ionicons name="cart" size={30} color="white" />
       </TouchableOpacity>
+
       <TouchableOpacity style={styles.fab} onPress={toggleForm}>
         <Ionicons name={showForm ? "close" : "add"} size={30} color="white" />
       </TouchableOpacity>
     </View>
   );
 };
+
 export default HomeScreen;
+
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20 },
   title: { fontSize: 20, fontWeight: "bold", marginBottom: 10 },

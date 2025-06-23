@@ -1,19 +1,57 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import HomeScreen from "../screens/HomeScreen";
 import CartScreen from "../screens/CartScreen";
+import ProductDetailsScreen from "../screens/ProductDetailsScreen";
 import { Product } from "../../types";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 export type RootStackParamList = {
   Home: undefined;
   Carrinho: undefined;
+  ProductDetails: { product: Product };
 };
+
 const Stack = createStackNavigator<RootStackParamList>();
+
 const AppNavigator: React.FC = () => {
   const [cart, setCart] = useState<Product[]>([]);
+
   const addToCart = (product: Product) => {
     setCart((prev) => [...prev, product]);
   };
+
+  const saveCartToStorage = async (cart: Product[]) => {
+    try {
+      await AsyncStorage.setItem("cart", JSON.stringify(cart));
+    } catch (error) {
+      console.error("Erro ao salvar carrinho:", error);
+    }
+  };
+
+  const loadCartFromStorage = async () => {
+    try {
+      const cartData = await AsyncStorage.getItem("cart");
+      return cartData ? JSON.parse(cartData) : [];
+    } catch (error) {
+      console.error("Erro ao carregar carrinho:", error);
+      return [];
+    }
+  };
+
+  useEffect(() => {
+    const loadCart = async () => {
+      const storedCart = await loadCartFromStorage();
+      setCart(storedCart);
+    };
+    loadCart();
+  }, []);
+
+  useEffect(() => {
+    saveCartToStorage(cart);
+  }, [cart]);
+
   return (
     <NavigationContainer>
       <Stack.Navigator>
@@ -23,8 +61,14 @@ const AppNavigator: React.FC = () => {
         <Stack.Screen name="Carrinho">
           {(props) => <CartScreen {...props} cart={cart} />}
         </Stack.Screen>
+        <Stack.Screen
+          name="ProductDetails"
+          component={ProductDetailsScreen}
+          options={{ title: "Detalhes do Produto" }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );
 };
+
 export default AppNavigator;
