@@ -4,6 +4,7 @@ import { createStackNavigator } from "@react-navigation/stack";
 import HomeScreen from "../screens/HomeScreen";
 import CartScreen from "../screens/CartScreen";
 import ProductDetailsScreen from "../screens/ProductDetailsScreen";
+import CheckoutScreen from "../screens/CheckoutScreen";
 import { Product } from "../../types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -11,6 +12,7 @@ export type RootStackParamList = {
   Home: undefined;
   Carrinho: undefined;
   ProductDetails: { product: Product };
+  Checkout: { cart: Product[] };
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -20,6 +22,14 @@ const AppNavigator: React.FC = () => {
 
   const addToCart = (product: Product) => {
     setCart((prev) => [...prev, product]);
+  };
+
+  const removeFromCart = (productId: string) => {
+    setCart((prev) => prev.filter((item) => item.id !== productId));
+  };
+
+  const clearCart = () => {
+    setCart([]);
   };
 
   const saveCartToStorage = async (cart: Product[]) => {
@@ -59,13 +69,25 @@ const AppNavigator: React.FC = () => {
           {(props) => <HomeScreen {...props} addToCart={addToCart} />}
         </Stack.Screen>
         <Stack.Screen name="Carrinho">
-          {(props) => <CartScreen {...props} cart={cart} />}
+          {(props) => (
+            <CartScreen
+              {...props}
+              cart={cart}
+              removeFromCart={removeFromCart}
+              clearCart={clearCart}
+            />
+          )}
         </Stack.Screen>
         <Stack.Screen
           name="ProductDetails"
           component={ProductDetailsScreen}
           options={{ title: "Detalhes do Produto" }}
         />
+        <Stack.Screen name="Checkout" options={{ title: "Finalizar Compra" }}>
+          {(props) => (
+            <CheckoutScreen {...props} cart={cart} clearCart={clearCart} />
+          )}
+        </Stack.Screen>
       </Stack.Navigator>
     </NavigationContainer>
   );
